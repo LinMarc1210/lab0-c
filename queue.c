@@ -33,10 +33,7 @@ void q_free(struct list_head *head)
     struct list_head *pos, *next;
     list_for_each_safe (pos, next, head) {
         element_t *entry = list_entry(pos, element_t, list);
-        list_del_init(pos);
-        free(pos);
-        free(entry->value);
-        free(entry);
+        q_release_element(entry);
     }
     free(head);
 }
@@ -81,7 +78,7 @@ element_t *q_remove_head(struct list_head *head, char *sp, size_t bufsize)
     if (!head || list_empty(head))
         return NULL;
     element_t *entry = list_entry(head->next, element_t, list);
-    if (!sp) {
+    if (sp) {
         sp = strncpy(sp, entry->value, bufsize - 1);
         sp[bufsize - 1] = '\0';
     }
@@ -96,7 +93,7 @@ element_t *q_remove_tail(struct list_head *head, char *sp, size_t bufsize)
     if (!head || list_empty(head))
         return NULL;
     element_t *entry = list_entry(head->prev, element_t, list);
-    if (!sp) {
+    if (sp) {
         sp = strncpy(sp, entry->value, bufsize - 1);
         sp[bufsize - 1] = '\0';
     }
