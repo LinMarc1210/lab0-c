@@ -242,7 +242,7 @@ int q_ascend(struct list_head *head)
     struct list_head *pos, *pos_safe;
     list_for_each_safe (pos, pos_safe, head) {
         struct list_head *right = pos->next;
-        const element_t *pos_entry = list_entry(pos, element_t, list);
+        element_t *pos_entry = list_entry(pos, element_t, list);
 
         while (right != head) {
             const element_t *right_entry = list_entry(right, element_t, list);
