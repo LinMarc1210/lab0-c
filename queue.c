@@ -230,6 +230,60 @@ void q_reverseK(struct list_head *head, int k)
     }
 }
 
+struct list_head *merge_two_lists(struct list_head *left,
+                                  struct list_head *right,
+                                  bool descend)
+{
+    if (!left || list_empty(left))
+        return right;
+    if (!right || list_empty(right))
+        return left;
+
+    struct list_head dummy;
+    INIT_LIST_HEAD(&dummy);
+    struct list_head *tail = &dummy;
+
+    struct list_head *left_pos = left->next, *right_pos = right->next;
+
+    while (left_pos != left && right_pos != right) {
+        const element_t *left_entry = list_entry(left_pos, element_t, list);
+        const element_t *right_entry = list_entry(right_pos, element_t, list);
+        int compare = strcmp(left_entry->value, right_entry->value);
+
+        if ((!descend && compare <= 0) || (descend && compare >= 0)) {
+            struct list_head *next = left_pos->next;
+            list_del(left_pos);
+            list_add_tail(left_pos, tail);
+            tail = left_pos;
+            left_pos = next;
+        } else {
+            struct list_head *next = right_pos->next;
+            list_del(right_pos);
+            list_add_tail(right_pos, tail);
+            tail = right_pos;
+            right_pos = next;
+        }
+    }
+
+    while (left_pos != left) {
+        struct list_head *next = left_pos->next;
+        list_del(left_pos);
+        list_add_tail(left_pos, tail);
+        tail = left_pos;
+        left_pos = next;
+    }
+
+    while (right_pos != right) {
+        struct list_head *next = right_pos->next;
+        list_del(right_pos);
+        list_add_tail(right_pos, tail);
+        tail = right_pos;
+        right_pos = next;
+    }
+
+    return dummy.next;
+}
+
 /* Sort elements of queue in ascending/descending order */
 void q_sort(struct list_head *head, bool descend) {}
 
