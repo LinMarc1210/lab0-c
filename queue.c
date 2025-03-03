@@ -284,6 +284,27 @@ struct list_head *merge_two_lists(struct list_head *left,
     return dummy.next;
 }
 
+struct list_head *merge_list_dac(struct list_head **lists,
+                                 int low,
+                                 int high,
+                                 bool descend)
+{
+    if (low > high)
+        return NULL;
+    if (low == high)
+        return lists[low];
+
+    int mid = (low + high) / 2;
+    struct list_head *left = merge_list_dac(lists, low, mid, descend);
+    struct list_head *right = merge_list_dac(lists, mid + 1, high, descend);
+    if (!left)
+        return right;
+    if (!right)
+        return left;
+    return merge_two_lists(left, right, descend);
+}
+
+
 /* Sort elements of queue in ascending/descending order */
 void q_sort(struct list_head *head, bool descend) {}
 
