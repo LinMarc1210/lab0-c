@@ -230,123 +230,36 @@ void q_reverseK(struct list_head *head, int k)
     }
 }
 
-struct list_head *merge_two_lists(struct list_head *left,
-                                  struct list_head *right,
-                                  bool descend)
-{
-    if (!left || list_empty(left))
-        return right;
-    if (!right || list_empty(right))
-        return left;
-
-    struct list_head dummy;
-    INIT_LIST_HEAD(&dummy);
-    struct list_head *tail = &dummy;
-
-    struct list_head *left_pos = left->next, *right_pos = right->next;
-
-    while (left_pos != left && right_pos != right) {
-        const element_t *left_entry = list_entry(left_pos, element_t, list);
-        const element_t *right_entry = list_entry(right_pos, element_t, list);
-        int compare = strcmp(left_entry->value, right_entry->value);
-
-        if ((!descend && compare <= 0) || (descend && compare >= 0)) {
-            struct list_head *next = left_pos->next;
-            list_del(left_pos);
-            list_add_tail(left_pos, tail);
-            tail = left_pos;
-            left_pos = next;
-        } else {
-            struct list_head *next = right_pos->next;
-            list_del(right_pos);
-            list_add_tail(right_pos, tail);
-            tail = right_pos;
-            right_pos = next;
-        }
-    }
-
-    while (left_pos != left) {
-        struct list_head *next = left_pos->next;
-        list_del(left_pos);
-        list_add_tail(left_pos, tail);
-        tail = left_pos;
-        left_pos = next;
-    }
-
-    while (right_pos != right) {
-        struct list_head *next = right_pos->next;
-        list_del(right_pos);
-        list_add_tail(right_pos, tail);
-        tail = right_pos;
-        right_pos = next;
-    }
-
-    return dummy.next;
-}
-
-struct list_head *merge_list_dac(struct list_head **lists,
-                                 int low,
-                                 int high,
-                                 bool descend)
-{
-    if (low > high)
-        return NULL;
-    if (low == high)
-        return lists[low];
-
-    int mid = (low + high) / 2;
-    struct list_head *left = merge_list_dac(lists, low, mid, descend);
-    struct list_head *right = merge_list_dac(lists, mid + 1, high, descend);
-    if (!left)
-        return right;
-    if (!right)
-        return left;
-    return merge_two_lists(left, right, descend);
-}
-
-
 /* Sort elements of queue in ascending/descending order */
 void q_sort(struct list_head *head, bool descend)
 {
-    if (!head || list_empty(head))
+    if (!head || list_empty(head) || list_is_singular(head))
         return;
 
-    int listsSize = q_size(head);
-    struct list_head **lists = malloc(sizeof(struct list_head *) * listsSize);
-    if (!lists)
-        return;
+    struct list_head list_left, list_right;
+    element_t *pivot;
+    element_t *item = NULL, *is = NULL;
 
-    int i = 0;
-    struct list_head *pos = head->next;
+    INIT_LIST_HEAD(&list_left);
+    INIT_LIST_HEAD(&list_right);
 
-    while (pos != head) {
-        struct list_head *iter = pos;
-        while (iter->next != head) {
-            const element_t *iter_entry = list_entry(iter, element_t, list);
-            const element_t *next_entry =
-                list_entry(iter->next, element_t, list);
+    pivot = list_first_entry(head, element_t, list);
+    list_del(&pivot->list);
 
-            if ((!descend &&
-                 strcmp(iter_entry->value, next_entry->value) <= 0) ||
-                (descend && strcmp(iter_entry->value, next_entry->value) >= 0))
-                iter = iter->next;
-            else
-                break;
-        }
-        LIST_HEAD(sublist);
-        list_cut_position(&sublist, head, iter);
-        lists[i++] = sublist.next;
-
-        pos = head->next;
+    list_for_each_entry_safe (item, is, head, list) {
+        if ((!descend && strcmp(item->value, pivot->value) < 0) ||
+            (descend && strcmp(item->value, pivot->value) > 0))
+            list_move_tail(&item->list, &list_left);
+        else
+            list_move_tail(&item->list, &list_right);
     }
 
-    struct list_head *sorted_head =
-        merge_list_dac(lists, 0, listsSize - 1, descend);
-    head->next = sorted_head;
-    head->prev = sorted_head->prev;
-    sorted_head->prev->next = head;
+    q_sort(&list_left, descend);
+    q_sort(&list_right, descend);
 
-    free(lists);
+    list_add(&pivot->list, head);
+    list_splice(&list_left, head);
+    list_splice_tail(&list_right, head);
 }
 
 
