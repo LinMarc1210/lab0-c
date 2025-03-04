@@ -306,7 +306,49 @@ struct list_head *merge_list_dac(struct list_head **lists,
 
 
 /* Sort elements of queue in ascending/descending order */
-void q_sort(struct list_head *head, bool descend) {}
+void q_sort(struct list_head *head, bool descend)
+{
+    if (!head || list_empty(head))
+        return;
+
+    int listsSize = q_size(head);
+    struct list_head **lists = malloc(sizeof(struct list_head *) * listsSize);
+    if (!lists)
+        return;
+
+    int i = 0;
+    struct list_head *pos = head->next;
+
+    while (pos != head) {
+        struct list_head *iter = pos;
+        while (iter->next != head) {
+            const element_t *iter_entry = list_entry(iter, element_t, list);
+            const element_t *next_entry =
+                list_entry(iter->next, element_t, list);
+
+            if ((!descend &&
+                 strcmp(iter_entry->value, next_entry->value) <= 0) ||
+                (descend && strcmp(iter_entry->value, next_entry->value) >= 0))
+                iter = iter->next;
+            else
+                break;
+        }
+        LIST_HEAD(sublist);
+        list_cut_position(&sublist, head, iter);
+        lists[i++] = sublist.next;
+
+        pos = head->next;
+    }
+
+    struct list_head *sorted_head =
+        merge_list_dac(lists, 0, listsSize - 1, descend);
+    head->next = sorted_head;
+    head->prev = sorted_head->prev;
+    sorted_head->prev->next = head;
+
+    free(lists);
+}
+
 
 /* Remove every node which has a node with a strictly less value anywhere to
  * the right side of it */
