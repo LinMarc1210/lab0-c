@@ -132,11 +132,7 @@ bool q_delete_mid(struct list_head *head)
         index++;
     }
     element_t *entry = list_entry(pos, element_t, list);
-    struct list_head *next = pos->next;
-    struct list_head *prev = pos->prev;
-
-    next->prev = prev;
-    prev->next = next;
+    list_del(pos);
     q_release_element(entry);
 
     return true;
