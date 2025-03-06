@@ -254,36 +254,52 @@ void q_reverseK(struct list_head *head, int k)
     }
 }
 
+void merge_two(struct list_head *target, struct list_head *head, bool descend)
+{
+    if (!target || !head) {
+        return;
+    }
+
+    LIST_HEAD(pos);
+
+    while (!list_empty(head) && !list_empty(target)) {
+        element_t *l_entry = list_first_entry(target, element_t, list);
+        element_t *r_entry = list_first_entry(head, element_t, list);
+        if ((!descend && strcmp(l_entry->value, r_entry->value) <= 0) ||
+            (descend && strcmp(l_entry->value, r_entry->value) >= 0)) {
+            list_move_tail(&l_entry->list, &pos);
+        } else {
+            list_move_tail(&r_entry->list, &pos);
+        }
+    }
+
+    if (!list_empty(target))
+        list_splice_tail_init(target, &pos);
+    if (!list_empty(head))
+        list_splice_tail_init(head, &pos);
+
+    list_splice(&pos, head);
+    return;
+}
+
 /* Sort elements of queue in ascending/descending order */
 void q_sort(struct list_head *head, bool descend)
 {
-    if (!head || list_empty(head) || list_is_singular(head))
+    if (!head || list_empty(head) || list_is_singular(head)) {
         return;
-
-    struct list_head list_left, list_right;
-    element_t *pivot;
-    element_t *item = NULL, *is = NULL;
-
-    INIT_LIST_HEAD(&list_left);
-    INIT_LIST_HEAD(&list_right);
-
-    pivot = list_first_entry(head, element_t, list);
-    list_del(&pivot->list);
-
-    list_for_each_entry_safe (item, is, head, list) {
-        if ((!descend && strcmp(item->value, pivot->value) < 0) ||
-            (descend && strcmp(item->value, pivot->value) > 0))
-            list_move_tail(&item->list, &list_left);
-        else
-            list_move_tail(&item->list, &list_right);
     }
 
-    q_sort(&list_left, descend);
-    q_sort(&list_right, descend);
+    int count = q_size(head) / 2;
+    struct list_head *slow = head, *fast = head->next;
+    for (; count; slow = slow->next, fast = fast->next->next, count--)
+        ;
 
-    list_add(&pivot->list, head);
-    list_splice(&list_left, head);
-    list_splice_tail(&list_right, head);
+    LIST_HEAD(left);
+    list_cut_position(&left, head, slow);
+
+    q_sort(&left, descend);
+    q_sort(head, descend);
+    merge_two(&left, head, descend);
 }
 
 
