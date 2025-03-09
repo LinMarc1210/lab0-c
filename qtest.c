@@ -1056,6 +1056,30 @@ static bool do_next(int argc, char *argv[])
     return q_show(0);
 }
 
+// static bool do_shuffle(int argc, char *argv[])
+// {
+//     if (argc != 1) {
+//         report(1, "%s takes no arguments", argv[0]);
+//         return false;
+//     }
+
+//     if (!current || !current->q) {
+//         report(3, "Warning: Calling shuffle on null queue");
+//         return false;
+//     }
+//     error_check();
+
+//     set_noallocate_mode(true);
+//     if (exception_setup(true))
+//         q_shuffle(current->q);
+//     exception_cancel();
+
+//     set_noallocate_mode(false);
+
+//     q_show(3);
+//     return !error_check();
+// }
+
 static void console_init()
 {
     ADD_COMMAND(new, "Create new queue", "");
@@ -1096,6 +1120,7 @@ static void console_init()
                 "");
     ADD_COMMAND(reverseK, "Reverse the nodes of the queue 'K' at a time",
                 "[K]");
+    // ADD_COMMAND(shuffle, "Shuffle nodes in queue randomly", "");
     add_param("length", &string_length, "Maximum length of displayed string",
               NULL);
     add_param("malloc", &fail_probability, "Malloc failure probability percent",

@@ -378,3 +378,25 @@ int q_merge(struct list_head *head, bool descend)
 
     return q_size(target->q);
 }
+
+void q_shuffle(struct list_head *head)
+{
+    if (!head || list_empty(head))
+        return;
+
+    int len = q_size(head) - 1;
+    struct list_head *tail = head->prev;
+    for (int j = len; j > 0; j--) {
+        int random = rand() % (j + 1);
+        struct list_head *pos = NULL;
+        for (pos = head; random >= 0; random--)
+            pos = pos->next;
+        if (pos == tail)
+            continue;
+
+        struct list_head *tmp = pos->prev;
+        list_move(pos, tail);
+        list_move(tail, tmp);
+        tail = pos;
+    }
+}
