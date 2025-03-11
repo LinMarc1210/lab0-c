@@ -22,6 +22,7 @@
 #include "dudect/fixture.h"
 #include "list.h"
 #include "random.h"
+#include "xorshift.h"
 
 /* Shannon entropy */
 extern double shannon_entropy(const uint8_t *input_data);
@@ -169,13 +170,20 @@ static bool do_new(int argc, char *argv[])
 static void fill_rand_string(char *buf, size_t buf_size)
 {
     size_t len = 0;
-    while (len < MIN_RANDSTR_LEN)
-        len = rand() % buf_size;
 
-    uint64_t randstr_buf_64[MAX_RANDSTR_LEN] = {0};
-    randombytes((uint8_t *) randstr_buf_64, len * sizeof(uint64_t));
-    for (size_t n = 0; n < len; n++)
-        buf[n] = charset[randstr_buf_64[n] % (sizeof(charset) - 1)];
+    if (!change_prng) {
+        while (len < MIN_RANDSTR_LEN)
+            len = rand() % buf_size;
+        uint64_t randstr_buf_64[MAX_RANDSTR_LEN] = {0};
+        randombytes((uint8_t *) randstr_buf_64, len * sizeof(uint64_t));
+        for (size_t n = 0; n < len; n++)
+            buf[n] = charset[randstr_buf_64[n] % (sizeof(charset) - 1)];
+    } else {
+        while (len < MIN_RANDSTR_LEN)
+            len = xorshift64_rand() % buf_size;
+        for (size_t n = 0; n < len; n++)
+            buf[n] = charset[xorshift64_rand() % (sizeof(charset) - 1)];
+    }
 
     buf[len] = '\0';
 }

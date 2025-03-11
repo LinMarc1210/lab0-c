@@ -14,10 +14,12 @@
 #include "console.h"
 #include "report.h"
 #include "web.h"
+#include "xorshift.h"
 
 /* Some global values */
 int simulation = 0;
 int show_entropy = 0;
+int change_prng = 0;
 static cmd_element_t *cmd_list = NULL;
 static param_element_t *param_list = NULL;
 static bool block_flag = false;
@@ -414,6 +416,16 @@ static bool do_web(int argc, char *argv[])
     return true;
 }
 
+void change_prng_setter(int old_value)
+{
+    if (change_prng) {
+        xorshift64_init(0);
+        report(1, "PRNG switched to Xorshift");
+    } else {
+        report(1, "PRNG switched to default randombytes");
+    }
+}
+
 /* Initialize interpreter */
 void init_cmd()
 {
@@ -437,6 +449,9 @@ void init_cmd()
     add_param("error", &err_limit, "Number of errors until exit", NULL);
     add_param("echo", &echo, "Do/don't echo commands", NULL);
     add_param("entropy", &show_entropy, "Show/Hide Shannon entropy", NULL);
+    add_param("prng", &change_prng,
+              "Select PRNG: 0 for randombytes, 1 for Xorshift",
+              change_prng_setter);
 
     init_in();
     init_time(&last_time);
