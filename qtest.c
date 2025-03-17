@@ -1064,6 +1064,154 @@ static bool do_next(int argc, char *argv[])
     return q_show(0);
 }
 
+int compare(void *priv, struct list_head *q1, struct list_head *q2)
+{
+    if (q1 == q2)
+        return 0;
+    element_t *e1 = list_entry(q1, element_t, list);
+    element_t *e2 = list_entry(q2, element_t, list);
+    if (priv)
+        *((int *) priv) += 1;
+    return strcmp(e1->value, e2->value);
+}
+
+static struct list_head *merge(void *priv,
+                               int (*cmp)(void *,
+                                          struct list_head *,
+                                          struct list_head *),
+                               struct list_head *a,
+                               struct list_head *b)
+{
+    struct list_head *head, **tail = &head;
+
+    for (;;) {
+        // If equal, take 'a' -- important for sort stability
+        if (cmp(priv, a, b) <= 0) {
+            *tail = a;
+            tail = &a->next;
+            a = a->next;
+            if (!a) {
+                *tail = b;
+                break;
+            }
+        } else {
+            *tail = b;
+            tail = &b->next;
+            b = b->next;
+            if (!b) {
+                *tail = a;
+                break;
+            }
+        }
+    }
+
+    return head;
+}
+
+static void merge_final(void *priv,
+                        int (*cmp)(void *,
+                                   struct list_head *,
+                                   struct list_head *),
+                        struct list_head *head,
+                        struct list_head *a,
+                        struct list_head *b)
+{
+    struct list_head *tail = head;
+    int count = 0;
+
+    for (;;) {
+        // If equal, take 'a' -- important for sort stability
+        if (cmp(priv, a, b) <= 0) {
+            tail->next = a;
+            a->prev = tail;
+            tail = a;
+            a = a->next;
+            if (!a)
+                break;
+        } else {
+            tail->next = b;
+            b->prev = tail;
+            tail = b;
+            b = b->next;
+            if (!b) {
+                b = a;
+                break;
+            }
+        }
+    }
+
+    tail->next = b;
+    do {
+        if (!++count)
+            cmp(priv, b, b);
+        b->prev = tail;
+        tail = b;
+        b = b->next;
+    } while (b);
+
+    tail->next = head;
+    head->prev = tail;
+}
+
+void q_list_sort(void *priv,
+                 struct list_head *head,
+                 int (*cmp)(void *, struct list_head *, struct list_head *),
+                 bool descend)
+{
+    struct list_head *list = head->next, *pending = NULL;
+    size_t count = 0; /* Count of pending */
+
+    if (list == head->prev) /* Zero or one elements */
+        return;
+
+    if (descend) {
+        q_reverse(head);
+    }
+
+    /* Convert to a null-terminated singly-linked list. */
+    head->prev->next = NULL;
+
+    do {
+        size_t bits;
+        struct list_head **tail = &pending;
+
+        /* Find the least-significant clear bit in count */
+        for (bits = count; bits & 1; bits >>= 1)
+            tail = &(*tail)->prev;
+        /* Do the indicated merge */
+        if (bits) {
+            struct list_head *a = *tail, *b = a->prev;
+
+            a = merge(priv, cmp, b, a);
+            /* Install the merged result in place of the inputs */
+            a->prev = b->prev;
+            *tail = a;
+        }
+
+        /* Move one element from input list to pending */
+        list->prev = pending;
+        pending = list;
+        list = list->next;
+        pending->next = NULL;
+        count++;
+    } while (list);
+
+    /* End of input; merge together all the pending lists. */
+    list = pending;
+    pending = pending->prev;
+    for (;;) {
+        struct list_head *next = pending->prev;
+
+        if (!next)
+            break;
+        list = merge(priv, cmp, pending, list);
+        pending = next;
+    }
+    /* The final merge, rebuilding prev links */
+    merge_final(priv, cmp, head, pending, list);
+}
+
+
 // static bool do_shuffle(int argc, char *argv[])
 // {
 //     if (argc != 1) {
